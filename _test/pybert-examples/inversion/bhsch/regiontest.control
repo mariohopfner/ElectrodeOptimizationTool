@@ -1,0 +1,15 @@
+#No	start	zWeight	Trans
+2	100	0.01	log
+#No	single	start	Trans	lBound	uBound MC zWeight
+3	1	10	log	8	15	1 0.01
+4	0	100	log	95	150	1 0.01
+5	1	8	log	5	15	1 0.01
+6	1	100	log	95	350	1 0.01
+#No	background
+1	1
+#Inter-region
+*	* 	0.01
+2	3	10
+2	4	10
+2	5	10
+2	6	10

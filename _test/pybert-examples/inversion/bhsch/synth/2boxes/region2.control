@@ -1,0 +1,23 @@
+#No trans zWeight start
+<<<<<<< .mine
+2   log   0.01    30
+#No single start lbound ubound trans
+3    1 10    8     20	log
+4    1 100   80    120	log
+=======
+#No single ctype    MC  trans zWeight start lbound ubound trans
+2   0       1       1   log   0.01   100   25      150     log
+3   1       1       1   log   0.01   30    25      150     log
+4   0       1       1   log   0.01   100   25      150     log
+>>>>>>> .r43
+#No background
+1	1
+#Inter-region
+<<<<<<< .mine
+2 3 3
+2 4 3
+=======
+2   3   1
+2   4   1
+3   4   0
+>>>>>>> .r43
