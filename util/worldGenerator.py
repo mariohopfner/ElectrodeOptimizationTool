@@ -1,7 +1,9 @@
 #!/usr/bin/env python
 
 import math
+import pygimli as pg
 import pygimli.meshtools as mt
+import numpy as np
 
 def get_insert_index(nodes, node):
     i = 0
@@ -83,6 +85,41 @@ def generate_hom_world_with_inclusion(world_dim=[100, 100], incl_start=[10, -10]
     return geom
 
 '''
+Generates a layered world
+The region markers are increasing with depth
+    :parameter
+        world_dim_x        - world dimensions as [x,y]
+        layer_heights      - heights of the layers (at least one height needs to be given)
+'''
+def generate_layered_world(world_dim=[100, 100], layer_heights=[10, 20]):
+    # pre-computational checks
+    if sum(layer_heights) > world_dim[1]:
+        return None
+
+    # create world
+    world = mt.createWorld(start=[0, 0], end=[world_dim[0], -world_dim[1]])
+
+    # create layers
+    current_depth = 0
+    layers = []
+    for i in range(len(layer_heights)):
+        layer = mt.createRectangle(start=[0, -current_depth], end=[world_dim[0], -(current_depth + layer_heights[i])],
+                                   marker=i + 1, boundaryMarker=10)
+        current_depth += layer_heights[i]
+        layers.append(layer)
+
+    # add bottom layer if needed
+    if current_depth != world_dim[1]:
+        layer = mt.createRectangle(start=[0, -current_depth], end=[world_dim[0], -world_dim[1]],
+                                   marker=i + 2, boundaryMarker=10)
+        layers.append(layer)
+
+    # merge underground
+    geom = mt.mergePLC([world] + layers)
+
+    return geom
+
+'''
 Generates a layered world with a single inclusion.
 The region markers are increasing with depth, the inclusion has the next available marker number
     :parameter
@@ -140,7 +177,7 @@ def generate_dipped_layered_world(world_dim=[100, 100], layer_ends=[-20, -50], d
         dipping_angle += 360
 
     # create world
-    world = mt.createWorld(start=[0, 0], end=[world_dim[0], -world_dim[1]])
+    world = mt.createWorld(start=[0, 0], end=[world_dim[0], -world_dim[1]], worldMarker=True)
 
     # remove layers out of world scope
     removed_indices = 0
@@ -159,7 +196,6 @@ def generate_dipped_layered_world(world_dim=[100, 100], layer_ends=[-20, -50], d
     next_id = 4
     for i in range(len(layer_ends)):
         # starting node
-        start_node = [0, 0, 0, 0]
         if layer_ends[i] <= 0 and layer_ends[i] >= -world_dim[1]:
             # layer starts at left world border
             start_node = [next_id, 0, layer_ends[i], 7]
@@ -175,7 +211,6 @@ def generate_dipped_layered_world(world_dim=[100, 100], layer_ends=[-20, -50], d
         nodes.insert(get_insert_index(nodes, start_node), start_node)
         next_id = next_id + 1
         # ending node
-        end_node = [0, 0, 0, 0]
         if layer_ends[i] + dipping_diff <= 0 and layer_ends[i] + dipping_diff >= -world_dim[1]:
             # layer ends at right world border
             end_node = [next_id, world_dim[0], layer_ends[i] + dipping_diff, 3]
@@ -236,14 +271,6 @@ def generate_dipped_layered_world(world_dim=[100, 100], layer_ends=[-20, -50], d
         poly = mt.createPolygon(get_polygon_from_nodes(polygons[i]), marker=i + 1, isClosed=True)
         world = mt.mergePLC([world, poly])
     return world
-
-
-
-
-
-
-
-
 
 '''
 Function that creates a PyGimli world with given parameters
