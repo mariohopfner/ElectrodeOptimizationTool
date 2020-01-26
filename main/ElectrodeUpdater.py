@@ -2,11 +2,10 @@
 
 class ElectrodeUpdater:
 
-    def update_scheme(self, old_scheme, world_x, min_spacing, max_spacing,
-                          fop, inv_grid, inv_result):
+    def init_scheme(self):
         pass
 
-    def init_electrodes(self, world_x, max_spacing):
+    def update_scheme(self, old_scheme, fop, inv_grid, inv_result):
         pass
 
     def set_essentials(self, folder):

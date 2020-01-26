@@ -15,16 +15,18 @@ import util.schemeUtil as su
 
 # use inversion config
 config = InversionConfiguration(general_bert_verbose=True,
-                                world_x=200, world_y=100, world_resistivities=[1000,50], world_gen='incl',
-                                world_layers=[], world_angle=[],
-                                world_inclusion_start=[20,-20], world_inclusion_dim=[50,30],
-                                sim_mesh_quality=25, sim_noise_level=0.1, sim_noise_abs=1e-6, sim_schemes=['dd'],
-                                inv_lambda=80, inv_para_dx=0.3, inv_max_cell_area=10,
-                                finv_max_iterations=5, finv_max_spacing=20, finv_min_spacing=5)
+                                    world_x=200, world_y=100, world_resistivities=[1000,50], world_gen='incl',
+                                    world_layers=[], world_angle=0,
+                                    world_inclusion_start=[80,-20], world_inclusion_dim=[20,10],
+                                    sim_mesh_quality=34, sim_noise_level=0.2, sim_noise_abs=1e-6,
+                                    inv_lambda=50, inv_para_dx=0.1, inv_max_cell_area=10,
+                                    finv_max_iterations=8, finv_spacing=2, finv_base_configs=['dd'],
+                                    finv_add_configs=['wa', 'wb', 'pp', 'pd', 'slm', 'hw', 'gr'],
+                                    finv_gradient_weight=0)
 
 # create folder
 start_time = datetime.datetime.now()
-folder = "../inversion_results/job-%d%d%d-%d.%d.%d-fillinv/" \
+folder = "../inversion_results/job-%d%d%d-%d.%d.%d-fullinv/" \
  % (start_time.year,start_time.month,start_time.day,start_time.hour,start_time.minute,start_time.second)
 os.makedirs(folder + "tmp/")
 
@@ -39,12 +41,12 @@ if config.world_gen == "incl":
         config.world_inclusion_start, config.world_inclusion_dim)
 
 # create electrodes
-electrode_count = np.ceil(config.world_x / config.finv_min_spacing) + 1
+electrode_count = np.ceil(config.world_x / config.finv_spacing) + 1
 electrodes = pg.utils.grange(start=0, end=config.world_x, n=electrode_count)
 
 # create scheme
 schemes = ['wa', 'wb', 'pp', 'pd', 'dd', 'slm', 'hw', 'gr']
-electrode_counts = [np.ceil(config.world_x / config.finv_min_spacing) + 1]
+electrode_counts = [np.ceil(config.world_x / config.finv_spacing) + 1]
 comp_electrodes = [pg.utils.grange(start=0, end=config.world_x, n=electrode_counts[0])]
 j = 0
 while np.floor((electrode_counts[j]-1)/2) == (electrode_counts[j]-1)/2:

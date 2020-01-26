@@ -8,18 +8,20 @@ import numpy as np
 # ElectrodeUpdater that halves the electrode spacing
 class SimpleRefiningElectrodeUpdater(ElectrodeUpdater):
 
-    def __init__(self):
+    def __init__(self, world_x, spacing):
+        self.__world_x = world_x
+        self.__spacing = spacing
+
         self.__folder = None
 
     def set_essentials(self, folder):
         self.__folder = folder
 
-    def init_electrodes(self, world_x, max_spacing):
-        electrode_count = np.ceil(world_x / max_spacing) + 1
-        return pg.utils.grange(start=0, end=world_x, n=electrode_count)
+    def init_scheme(self):
+        # TODO
+        return None
 
-    def update_scheme(self, old_scheme, world_x, min_spacing, max_spacing,
-                          fop, inv_grid, inv_result):
+    def update_scheme(self, old_scheme, fop, inv_grid, inv_result):
 
         # new_electrodes = [old_electrodes[0]]
         # for i in range(1, len(old_electrodes)):

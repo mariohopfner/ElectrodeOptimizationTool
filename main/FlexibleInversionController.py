@@ -24,19 +24,13 @@ class FlexibleInversionController:
         self.__folder = ""
 
         self.__world = None
-        self.__electrodes = []
         self.__scheme = None
         self.__mesh = None
-        self.__data = None
+        self.__syndata = None
         self.__inv = None
         self.__fop = None
         self.__pd = None
         self.__res = []
-
-    def __update_scheme(self, folder):
-        self.__scheme = self.__electrode_updater.update_scheme(
-            self.__scheme, self.__config.world_x,self.__config.finv_min_spacing,
-            self.__config.finv_max_spacing, self.__fop, self.__pd, self.__inv)
 
     def __create_world(self):
         if self.__config.world_gen == "lay":
@@ -52,18 +46,10 @@ class FlexibleInversionController:
 
         return -1
 
-    def __create_scheme(self):
-        self.__scheme = pb.createData(elecs=self.__electrodes, schemeName=self.__config.sim_schemes[0])
-        for i in range(1,len(self.__config.sim_schemes)-1):
-            scheme_tmp = pb.createData(elecs=self.__electrodes, schemeName=self.__config.sim_schemes[i])
-            self.__scheme = su.merge_schemes(self.__scheme, scheme_tmp, self.__folder + "tmp/")
-        return 0
-
     def __create_mesh(self):
-        spacing = np.floor(len(self.__config.world_x/self.__electrodes))
         for pos in self.__scheme.sensorPositions():
             self.__world.createNode(pos)
-            self.__world.createNode(pos + pg.RVector3(0, -spacing / 2))
+            self.__world.createNode(pos + pg.RVector3(0, -self.__config.finv_spacing / 2))
 
         # create mesh from world
         self.__mesh = mt.createMesh(self.__world, quality=self.__config.sim_mesh_quality)
@@ -120,11 +106,8 @@ class FlexibleInversionController:
         # check model integrity
         logging.info("Creating world...")
         self.__create_world()
-        logging.info("Creating first electrode setup...")
-        self.__electrodes = self.__electrode_updater.init_electrodes(
-            self.__config.world_x, self.__config.finv_max_spacing)
         logging.info("Creating configuration scheme...")
-        self.__create_scheme()
+        self.__scheme = self.__electrode_updater.init_scheme()
         logging.info("Creating initial mesh...")
         self.__create_mesh()
         logging.info("Checking model integrity...")
@@ -142,17 +125,19 @@ class FlexibleInversionController:
 
     def __simulate(self, folder):
         ert = pb.ERTManager()
-        self.__data = ert.simulate(self.__mesh, res=self.__res, scheme=self.__scheme,
-                                   verbose=self.__config.general_bert_verbose, noiseLevel=self.__config.sim_noise_level,
-                                   noiseAbs=self.__config.sim_noise_abs)
-        self.__data.markInvalid(self.__data('rhoa') < 0)
-        self.__data.removeInvalid()
-        self.__data.save(folder + 'syndata.dat')
+        self.__syndata = ert.simulate(self.__mesh, res=self.__res, scheme=self.__scheme,
+                                      verbose=self.__config.general_bert_verbose,
+                                      noiseLevel=self.__config.sim_noise_level,
+                                      noiseAbs=self.__config.sim_noise_abs)
+        self.__syndata.markInvalid(self.__syndata('rhoa') < 0)
+        self.__syndata.removeInvalid()
+        self.__syndata.save(folder + 'syndata.dat')
 
     def __invert(self, folder):
         ert = pb.ERTManager()
-        self.__inv = ert.invert(self.__data, paraDX=self.__config.inv_para_dx, maxCellArea=self.__config.inv_max_cell_area,
-                   lam=self.__config.inv_lambda, verbose=self.__config.general_bert_verbose)
+        self.__inv = ert.invert(self.__syndata,
+                                paraDX=self.__config.inv_para_dx, maxCellArea=self.__config.inv_max_cell_area,
+                                lam=self.__config.inv_lambda, verbose=self.__config.general_bert_verbose)
         self.__fop = ert.fop
         self.__pd = ert.paraDomain
         ert.saveResult(folder)
@@ -168,9 +153,7 @@ class FlexibleInversionController:
         os.mkdir(folder)
         if self.__iteration != 1:
             logging.info("Updating scheme ...")
-            self.__update_scheme(folder)
-            logging.info("Updating mesh ...")
-            self.__create_mesh()
+            self.__scheme = self.__electrode_updater.update_scheme(self.__scheme, self.__fop, self.__pd, self.__inv)
         logging.info("Simulating data (%d electrodes, %d configurations)...",
                      len(self.__scheme.sensorPositions()), len(self.__scheme("rhoa")))
         self.__simulate(folder)
