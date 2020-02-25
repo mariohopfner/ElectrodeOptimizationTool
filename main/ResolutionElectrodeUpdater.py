@@ -12,14 +12,16 @@ import util.schemeUtil as su
 # ElectrodeUpdater that uses a resolution matrix to compute the optimal configuration
 class ResolutionElectrodeUpdater(ElectrodeUpdater):
 
-    def __init__(self, world_x: float, spacing: float, base_configs: list, add_configs: list, gradient_weight: float,
-                 addconfig_count: int):
+    def __init__(self, world_x: float, spacing: float, electrode_offset: float, base_configs: list, add_configs: list, gradient_weight: float,
+                 addconfig_count: int, li_threshold: float):
         self.__world_x = world_x
         self.__spacing = spacing
+        self.__electrode_offset = electrode_offset
         self.__base_configs = base_configs
         self.__add_configs = add_configs
         self.__gradient_weight = gradient_weight
         self.__addconfig_count = addconfig_count
+        self.__li_threshold = li_threshold
         self.__comp_scheme = None
         self.__folder_tmp = None
         self.__iteration = 0
@@ -30,15 +32,18 @@ class ResolutionElectrodeUpdater(ElectrodeUpdater):
     def __create_comprehensive_scheme(self):
         logging.info('Creating comprehensive scheme...')
         schemes = self.__base_configs + self.__add_configs
-        electrode_counts = [np.ceil(self.__world_x / self.__spacing) + 1]
-        comp_electrodes = [pg.utils.grange(start=0, end=self.__world_x, n=electrode_counts[0])]
+        electrode_counts = [np.ceil((self.__world_x - 2 * self.__electrode_offset)/ self.__spacing) + 1]
+        comp_electrodes = [pg.utils.grange(start=self.__electrode_offset, end=self.__world_x - self.__electrode_offset,
+                                           n=electrode_counts[0])]
         for k in range(2,int(np.floor(electrode_counts[0]))):
             j = 0
             while np.floor((electrode_counts[j]-1)/k) == (electrode_counts[j]-1)/k:
                 if (electrode_counts[j]-1)/k+1 > 4 and (electrode_counts[j]-1)/k+1 not in electrode_counts:
                     electrode_counts.append((electrode_counts[j]-1)/k+1)
                     j = len(electrode_counts) - 1
-                    comp_electrodes.append(pg.utils.grange(start=0, end=self.__world_x, n=electrode_counts[j]))
+                    comp_electrodes.append(pg.utils.grange(start=self.__electrode_offset,
+                                                           end=self.__world_x - self.__electrode_offset,
+                                                           n=electrode_counts[j]))
                 else:
                     electrode_counts.append((electrode_counts[j] - 1) / k + 1)
                     j = len(electrode_counts) - 1
@@ -70,8 +75,18 @@ class ResolutionElectrodeUpdater(ElectrodeUpdater):
         ert.fop.createJacobian(res)
         return pg.utils.base.gmat2numpy(ert.fop.jacobian())
 
+    def __compute_inner_products(self, j_base, j_add, k, nm):
+        n_base = len(j_base)
+        li = np.zeros(n_base)
+        for i in range(n_base):
+            for j in range(nm):
+                li[i] += j_base[i][j] * j_add[k][j]
+            li[i] /= (np.linalg.norm(j_base[i]) * np.linalg.norm(j_add[k]))
+            li[i] = np.abs(li[i])
+        return li
+
     def __compute_next_configs(self, scheme_base, scheme_compr, j_base, j_compr,
-                               mesh, cell_data):
+                               mesh, cell_data, iteration_subdir):
         electrode_count = len(scheme_compr.sensorPositions())
 
         nm = len(j_base[0]) # cell count
@@ -122,72 +137,75 @@ class ResolutionElectrodeUpdater(ElectrodeUpdater):
                 grad[i] = cell_grad / n
             grad /= max(grad)
 
-            # TODO test: curvature
-            curv = np.zeros(nm)
-            for i in range(nm):
-                n = 0
-                cell_curv = 0
-                if mesh.cells()[i].neighbourCell(0) is not None:
-                    n += 1
-                    i_n = mesh.cells().index((mesh.cells()[i].neighbourCell(0)))
-                    cell_curv += np.abs(grad[i] - grad[i_n]) / \
-                                 ((cc[i][0] - cc[i_n][0]) ** 2 + (cc[i][1] - cc[i_n][1]) ** 2) ** 0.5
-                if mesh.cells()[i].neighbourCell(1) is not None:
-                    n += 1
-                    i_n = mesh.cells().index((mesh.cells()[i].neighbourCell(1)))
-                    cell_curv += np.abs(grad[i] - grad[i_n]) / \
-                                 ((cc[i][0] - cc[i_n][0]) ** 2 + (cc[i][1] - cc[i_n][1]) ** 2) ** 0.5
-                if mesh.cells()[i].neighbourCell(2) is not None:
-                    n += 1
-                    i_n = mesh.cells().index((mesh.cells()[i].neighbourCell(2)))
-                    cell_curv += np.abs(grad[i] - grad[i_n]) / \
-                                 ((cc[i][0] - cc[i_n][0]) ** 2 + (cc[i][1] - cc[i_n][1]) ** 2) ** 0.5
-                curv[i] = cell_curv / n
-            curv /= max(curv)
-            # TODO test: curvature
-
-            outpath = self.__folder_tmp + '../gradient.dat'
+            outpath = self.__folder_tmp + '../' + iteration_subdir + 'gradient.dat'
             logging.info("Saving resistivity and resolution data to: " + outpath)
             with open(outpath, 'w') as f:
                 cell_centers = mesh.cellCenters()
-                f.write('x z rho grad curv\n')
+                f.write('x z rho grad\n')
                 for i in range(len(cell_data)):
-                    f.write('%f %f %f %f %f\n' % (cell_centers[i][0],cell_centers[i][1],cell_data[i],grad[i], curv[i]))
+                    f.write('%f %f %f %f\n' % (cell_centers[i][0],cell_centers[i][1],cell_data[i],grad[i]))
                 f.close()
 
         # compute goodness function
         # TODO adapt grad scaling?
-        gf = np.zeros(len(j_add))
+        res_gf = np.zeros(len(j_add))
+        grad_gf = np.zeros(len(j_add))
         for i in range(len(j_add)):
             for j in range(nm):
-                gf[i] += np.abs(j_add[i, j]) / gj_sum[j] * (1 + self.__gradient_weight * grad[j]) * \
-                         (1 - r_base[j, j] / r_compr[j, j])
+                res_gf[i] += np.abs(j_add[i, j]) / gj_sum[j] * (1 - r_base[j, j] / r_compr[j, j])
+                grad_gf[i] += grad[j]
 
-        sorted_indices = np.flip(np.argsort(gf))
+        sorted_indices_res = np.flip(np.argsort(res_gf))
+        sorted_indices_grad = np.flip(np.argsort(grad_gf))
 
-        if len(sorted_indices) > self.__addconfig_count:
-            indices_to_use = j_add_idx_dict[sorted_indices[0:self.__addconfig_count]]
-        else:
-            indices_to_use = j_add_idx_dict[sorted_indices]
+        grad_count = int(np.floor(self.__addconfig_count*self.__gradient_weight))
+        res_count = self.__addconfig_count - grad_count
 
-        # TODO inner product LI should be used!
-        return indices_to_use
+        indices_to_use = []
+
+        added_indices = 0
+        idx_rank = 0
+        while added_indices < res_count:
+            if idx_rank >= len(sorted_indices_res):
+                break
+
+            idx_to_add = sorted_indices_res[idx_rank]
+            li = self.__compute_inner_products(j_base, j_add, idx_to_add, nm)
+            li_accepted = True
+            for i in range(len(li)):
+                if li[i] >= self.__li_threshold:
+                    li_accepted = False
+            if li_accepted:
+                indices_to_use.append(j_add_idx_dict[idx_to_add])
+                added_indices += 1
+            idx_rank += 1
+
+        logging.info("LI: Skipping %d configurations", idx_rank - res_count)
+        if grad_count > 0:
+            grad_count += res_count - added_indices
+            if len(sorted_indices_grad) > grad_count:
+                indices_to_use = indices_to_use + list(j_add_idx_dict[sorted_indices_grad[0:grad_count]])
+            else:
+                indices_to_use = indices_to_use + list(j_add_idx_dict[sorted_indices_grad])
+
+        return np.unique(indices_to_use)
 
     def init_scheme(self):
-        electrode_count = np.ceil(self.__world_x / self.__spacing) + 1
+        electrode_count = np.ceil((self.__world_x - 2 * self.__electrode_offset) / self.__spacing) + 1
         if np.floor((electrode_count - 1) / 2) == (electrode_count - 1) / 2:
             electrode_count = (electrode_count - 1) / 2 + 1
         else:
             logging.info("Electrodes could not be divided in half for initial configuration! Using all electrodes!")
 
-        electrodes = pg.utils.grange(start=0, end=self.__world_x, n=electrode_count)
+        electrodes = pg.utils.grange(start=self.__electrode_offset, end=self.__world_x-self.__electrode_offset,
+                                     n=electrode_count)
         scheme = pb.createData(elecs=electrodes, schemeName=self.__base_configs[0])
         for i in range(1, len(self.__base_configs) - 1):
             scheme_tmp = pb.createData(elecs=electrodes, schemeName=self.__base_configs[i])
             scheme = su.merge_schemes(scheme, scheme_tmp, self.__folder_tmp)
         return scheme
 
-    def update_scheme(self, old_scheme, fop, inv_grid, inv_result):
+    def update_scheme(self, old_scheme, fop, inv_grid, inv_result, iteration_subdir):
         self.__iteration = self.__iteration + 1
         if self.__comp_scheme == None:
             self.__create_comprehensive_scheme()
@@ -197,7 +215,14 @@ class ResolutionElectrodeUpdater(ElectrodeUpdater):
         logging.info("Computing goodness function...")
         config_indices = self.__compute_next_configs(old_scheme, self.__comp_scheme,
                                                      pg.utils.base.gmat2numpy(fop.jacobian()),j_compr,
-                                                     inv_grid, inv_result)
+                                                     inv_grid, inv_result, iteration_subdir)
+
+        outpath = self.__folder_tmp + '../' + iteration_subdir + 'configs_to_add.txt'
+        logging.info("Saving computed configs to: " + outpath)
+        with open(outpath, 'w') as f:
+            for i in range(len(config_indices)):
+                f.write('%d\n' % (config_indices[i]))
+            f.close()
 
         scheme_add = su.extract_configs_from_scheme(self.__comp_scheme, config_indices, self.__folder_tmp)
 

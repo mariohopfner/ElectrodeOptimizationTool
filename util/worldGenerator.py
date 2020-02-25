@@ -168,7 +168,7 @@ Generates a dipped layered world.
         layer_heights      - heights of the layers (at least one height needs to be given)
         dipping_angle      - angle at which the layers are dipping
 '''
-def generate_dipped_layered_world(world_dim=[100, 100], layer_ends=[-20, -50], dipping_angle=30):
+def generate_dipped_layered_world(world_dim, layer_ends, dipping_angle):
     # pre-correct angle
     while dipping_angle > 180:
         dipping_angle -= 360
@@ -271,6 +271,39 @@ def generate_dipped_layered_world(world_dim=[100, 100], layer_ends=[-20, -50], d
         poly = mt.createPolygon(get_polygon_from_nodes(polygons[i]), marker=i + 1, isClosed=True)
         world = mt.mergePLC([world, poly])
     return world
+
+'''
+Generates a tiled world.
+    :parameter
+        world_dim          - world dimensions as [x,y]
+        tile_size          - size of the tiles as [x,y]
+'''
+def generate_tiled_world(world_dim=[100, 100], tile_size=[10, 10]):
+    # create world
+    world = mt.createWorld(start=[0, 0], end=[world_dim[0], -world_dim[1]])
+
+    n_tiles_x = int(np.ceil(world_dim[0] / tile_size[0]))
+    n_tiles_y = int(np.ceil(world_dim[1] / tile_size[1]))
+
+    # create tiles
+    for j in range(n_tiles_y):
+        for i in range(n_tiles_x):
+            x_start = int(i * tile_size[0])
+            x_end = int((i + 1) * tile_size[0])
+            y_start = int(-j * tile_size[1])
+            y_end = int(-(j + 1) * tile_size[1])
+            if x_end > world_dim[0]:
+                x_end = world_dim[0]
+            if y_end < -world_dim[1]:
+                y_end = -world_dim[1]
+            marker = 1
+            if ((-1) ** i) * ((-1) ** j) < 0:
+                marker = 2
+            tile = mt.createRectangle(start=[x_start, y_start], end=[x_end, y_end], marker=marker, boundaryMarker=10)
+            world = mt.mergePLC([world, tile])
+
+    return world
+
 
 '''
 Function that creates a PyGimli world with given parameters

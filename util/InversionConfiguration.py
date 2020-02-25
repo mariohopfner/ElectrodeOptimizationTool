@@ -23,7 +23,7 @@ class InversionConfiguration:
         sim_noise_level: A float describing the simulation noise level. Passed to the PyBert simulator.
         sim_noise_abs: A float describing the absolute simulation noise. Passed to the PyBert simulator.
         inv_lambda: A float describing the regularization lambda. Passed to the PyBert inverter.
-        inv_para_dx: A float describing the paraDX. Passed to the PyBert inverter.
+        inv_dx: A float describing the paraDX. Passed to the PyBert inverter.
         inv_max_cell_area: A float describing the maximum area a cell in the inverted model shall have. Passed to the
                            PyBert inverter.
         finv_max_iterations: An int setting the maximum iterations the flexible inversion shall run.
@@ -42,37 +42,52 @@ class InversionConfiguration:
     """
 
     def __init__(self,
-                 general_bert_verbose: bool,
-                 world_x: float, world_y: float, world_resistivities: list,world_gen: str, world_layers: list,
-                 world_angle: float, world_inclusion_start: list, world_inclusion_dim: list,
-                 sim_mesh_quality: int, sim_noise_level: float, sim_noise_abs: float,
-                 inv_lambda: float, inv_para_dx: float, inv_max_cell_area: float,
+                 general_bert_verbose: bool, general_folder_suffix: str,
+                 world_x: float, world_y: float, world_resistivities: list, world_gen: str, world_layers: list,
+                 world_angle: float, world_inclusion_start: list, world_inclusion_dim: list, world_tile_x: int,
+                 world_tile_y: int, world_electrode_offset: float,
+                 sim_mesh_quality: int, sim_mesh_maxarea: float, sim_noise_level: float, sim_noise_abs: float,
+                 inv_lambda: float, inv_dx: float, inv_dz: float, inv_depth: float,
+                 inv_final_lambda: float, inv_final_dx: float, inv_final_dz: float, inv_final_depth: float,
                  finv_max_iterations: int, finv_spacing: float, finv_base_configs: list, finv_add_configs: list,
-                 finv_gradient_weight: float, finv_addconfig_count: int):
+                 finv_gradient_weight: float, finv_addconfig_count: int, finv_li_threshold: float):
         # general params
         self.general_bert_verbose = general_bert_verbose
+        self.general_folder_suffix = general_folder_suffix
 
         # world params
         self.world_x = world_x
         self.world_y = world_y
         self.world_resistivities = world_resistivities
-        self.world_gen = world_gen    # incl, lay
+        self.world_gen = world_gen    # incl, lay, tile
+        self.world_electrode_offset = world_electrode_offset
         # layered world
         self.world_layers = world_layers
         self.world_angle = world_angle
         # homogeneous world with inclusion
         self.world_inclusion_start = world_inclusion_start
         self.world_inclusion_dim = world_inclusion_dim
+        # tiled world
+        self.world_tile_x = world_tile_x
+        self.world_tile_y = world_tile_y
 
         # simulation params
         self.sim_mesh_quality = sim_mesh_quality
+        self.sim_mesh_maxarea = sim_mesh_maxarea
         self.sim_noise_level = sim_noise_level
         self.sim_noise_abs = sim_noise_abs
 
         # inversion params
         self.inv_lambda = inv_lambda
-        self.inv_para_dx = inv_para_dx
-        self.inv_max_cell_area = inv_max_cell_area
+        self.inv_dx = inv_dx
+        self.inv_dz = inv_dz
+        self.inv_depth = inv_depth
+
+        # final inversion params
+        self.inv_final_lambda = inv_final_lambda
+        self.inv_final_dx = inv_final_dx
+        self.inv_final_dz = inv_final_dz
+        self.inv_final_depth = inv_final_depth
 
         # flexible inversion params
         self.finv_max_iterations = finv_max_iterations
@@ -81,6 +96,7 @@ class InversionConfiguration:
         self.finv_add_configs = finv_add_configs
         self.finv_gradient_weight = finv_gradient_weight
         self.finv_addconfig_count = finv_addconfig_count
+        self.finv_li_threshold = finv_li_threshold
 
     def check_integrity(self) -> int:
         """Checks the configuration objects integrity.
@@ -97,7 +113,7 @@ class InversionConfiguration:
         if not isinstance(self.world_resistivities, list):
             return 2
 
-        if self.world_gen != 'incl' and self.world_gen != 'lay':
+        if self.world_gen != 'incl' and self.world_gen != 'lay' and self.world_gen != 'tile':
             return 3
 
         if self.world_gen == 'incl':
@@ -109,30 +125,39 @@ class InversionConfiguration:
             if not isinstance(self.world_layers, list):
                 return 5
             if isinstance(self.world_angle, list):
+                return 5
+        if self.world_gen == 'tile':
+            if isinstance(self.world_tile_x,list) or isinstance(self.world_tile_y,list):
                 return 6
 
-        if isinstance(self.sim_mesh_quality,list) or isinstance(self.sim_noise_level, list) \
-                or isinstance(self.sim_noise_abs, list):
+        if isinstance(self.world_electrode_offset, list):
             return 7
 
-        if isinstance(self.inv_lambda,list) or isinstance(self.inv_para_dx, list) \
-                or isinstance(self.inv_max_cell_area, list):
+        if isinstance(self.sim_mesh_quality,list) or isinstance(self.sim_noise_level, list) \
+                or isinstance(self.sim_noise_abs, list) or isinstance(self.sim_mesh_maxarea, list):
             return 8
 
-        if isinstance(self.finv_max_iterations, list):
+        if isinstance(self.inv_lambda,list) or isinstance(self.inv_dx, list) \
+                or isinstance(self.inv_dz, list) or isinstance(self.inv_depth, list):
             return 9
 
-        if isinstance(self.finv_spacing, list):
+        if isinstance(self.finv_max_iterations, list):
             return 10
 
-        if not isinstance(self.finv_base_configs, list) or not isinstance(self.finv_add_configs, list):
+        if isinstance(self.finv_spacing, list):
             return 11
 
-        if isinstance(self.finv_gradient_weight, list):
+        if not isinstance(self.finv_base_configs, list) or not isinstance(self.finv_add_configs, list):
             return 12
 
-        if isinstance(self.finv_addconfig_count, list):
+        if isinstance(self.finv_gradient_weight, list):
             return 13
+
+        if isinstance(self.finv_addconfig_count, list):
+            return 14
+
+        if isinstance(self.finv_li_threshold, list):
+            return 15
 
         return 0
 
@@ -146,7 +171,8 @@ class InversionConfiguration:
             A list of strings containing the configuration parameters and a small description.
             Example: ['Bert Verbose: True','World X: 200', ...]
         """
-        conf_string = ['Bert Verbose: ' + str(self.general_bert_verbose), 'World X: ' + str(self.world_x),
+        conf_string = ['Bert Verbose: ' + str(self.general_bert_verbose),
+                       'Folder suffix: ' + str(self.general_folder_suffix), 'World X: ' + str(self.world_x),
                        'World Y: ' + str(self.world_y), 'World resistivities: ' + str(self.world_resistivities),
                        'World generator: ' + str(self.world_gen)]
 
@@ -158,13 +184,26 @@ class InversionConfiguration:
             conf_string.append('World inclusion start: ' + str(self.world_inclusion_start))
             conf_string.append('World inclusion dimension: ' + str(self.world_inclusion_dim))
 
+        if self.world_gen == 'tile':
+            conf_string.append('World tile size X: ' + str(self.world_tile_x))
+            conf_string.append('World tile size Y: ' + str(self.world_tile_y))
+
+        conf_string.append('Electrode offset: ' + str(self.world_electrode_offset))
+
         conf_string.append('Mesh quality: ' + str(self.sim_mesh_quality))
+        conf_string.append('Mesh max area: ' + str(self.sim_mesh_maxarea))
         conf_string.append('Noise level: ' + str(self.sim_noise_level))
         conf_string.append('Absolute noise: ' + str(self.sim_noise_abs))
 
         conf_string.append('Lambda: ' + str(self.inv_lambda))
-        conf_string.append('Para DX: ' + str(self.inv_para_dx))
-        conf_string.append('Max Cell Area: ' + str(self.inv_max_cell_area))
+        conf_string.append('Inv DX: ' + str(self.inv_dx))
+        conf_string.append('Inv DZ: ' + str(self.inv_dz))
+        conf_string.append('Inv Depth: ' + str(self.inv_depth))
+
+        conf_string.append('Final Inv Lambda: ' + str(self.inv_final_lambda))
+        conf_string.append('Final Inv DX: ' + str(self.inv_final_dx))
+        conf_string.append('Final Inv DZ: ' + str(self.inv_final_dz))
+        conf_string.append('Final Inv Depth: ' + str(self.inv_final_dz))
 
         conf_string.append('Max inversion counts: ' + str(self.finv_max_iterations))
         conf_string.append('Electrode spacing: ' + str(self.finv_spacing))
@@ -172,5 +211,6 @@ class InversionConfiguration:
         conf_string.append('Additional configs: ' + str(self.finv_add_configs))
         conf_string.append('Gradient weight: ' + str(self.finv_gradient_weight))
         conf_string.append('Configs to add: ' + str(self.finv_addconfig_count))
+        conf_string.append('Inner products threshold: ' + str(self.finv_li_threshold))
 
         return conf_string
