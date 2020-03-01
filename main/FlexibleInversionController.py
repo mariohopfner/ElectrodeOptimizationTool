@@ -21,7 +21,7 @@ class FlexibleInversionController:
         self.__electrode_updater = electrode_updater
         self.__iteration = 0
         self.__is_initialized = False
-        self.__folder = ""
+        self.__folder = ''
 
         self.__world = None
         self.__scheme = None
@@ -36,18 +36,18 @@ class FlexibleInversionController:
         self.__res = []
 
     def __create_world(self):
-        if self.__config.world_gen == "lay":
+        if self.__config.world_gen == 'lay':
             self.__world = wg.generate_dipped_layered_world(
                 [self.__config.world_x, self.__config.world_y], self.__config.world_layers, self.__config.world_angle)
             return 0
 
-        if self.__config.world_gen == "incl":
+        if self.__config.world_gen == 'incl':
             self.__world = wg.generate_hom_world_with_inclusion(
                 [self.__config.world_x, self.__config.world_y],
                 self.__config.world_inclusion_start, self.__config.world_inclusion_dim)
             return 0
 
-        if self.__config.world_gen == "tile":
+        if self.__config.world_gen == 'tile':
             self.__world = wg.generate_tiled_world(world_dim=[self.__config.world_x, self.__config.world_y],
                                                    tile_size=[self.__config.world_tile_x, self.__config.world_tile_y])
             return 0
@@ -95,59 +95,59 @@ class FlexibleInversionController:
             return True
         # set up job folder
         start_time = datetime.datetime.now()
-        self.__folder = "../inversion_results/job-%d%d%d-%d.%d.%d%s/" \
-         % (start_time.year,start_time.month,start_time.day,start_time.hour,start_time.minute,start_time.second,
-            self.__config.general_folder_suffix)
+        self.__folder = '../inversion_results/job-{:d}{:d}{:d}-{:d}.{:d}.{:d}{}/' \
+            .format(start_time.year, start_time.month, start_time.day, start_time.hour, start_time.minute,
+                    start_time.second,
+                    self.__config.general_folder_suffix)
         os.mkdir(self.__folder)
         # init logger
         for handler in logging.root.handlers[:]:
             logging.root.removeHandler(handler)
-        logging.basicConfig(format="%(asctime)s:%(levelname)s: %(message)s",
-                            filename=self.__folder + "job.log", level=logging.INFO)
-        logging.info("Routine start time: %s", str(start_time))
-        logging.info("Initializing logger successful. Logging to %s", self.__folder + "job.log")
-        logging.info("### STARTING INITIALIZATION PHASE")
+        logging.basicConfig(format='%(asctime)s:%(levelname)s: %(message)s',
+                            filename=self.__folder + 'job.log', level=logging.INFO)
+        logging.info('Routine start time: ' + str(start_time))
+        logging.info('Initializing logger successful. Logging to ' + self.__folder + 'job.log')
+        logging.info('### STARTING INITIALIZATION PHASE')
         # create temporary directory
-        os.mkdir(self.__folder + "tmp/")
-        logging.info("Temporary directory created")
+        os.mkdir(self.__folder + 'tmp/')
+        logging.info('Temporary directory created')
         # set logger and folder within electrode updater
         self.__electrode_updater.set_essentials(self.__folder)
 
         # check basic config file integrity
-        logging.info("Checking basic configuration file integrity...")
+        logging.info('Checking basic configuration file integrity...')
         config_integrity = self.__config.check_integrity()
         if config_integrity == 0:
-            logging.info("Configuration file is integer!")
+            logging.info('Configuration file is integer!')
         else:
-            logging.error("Configuration file is NOT integer! ABORTING!")
-            logging.error("Error code %d. Check InversionConfiguration.check_integrity() for detailled information",
-                          config_integrity)
+            logging.error('Configuration file is NOT integer! ABORTING!')
+            logging.error('Error code ' + str + '. Check InversionConfiguration.check_integrity() for detailled information')
             return False
         # log config values
-        logging.info("Configuration parameters:")
-        logging.info("#---------------#:")
+        logging.info('Configuration parameters:')
+        logging.info('#---------------#:')
         conf_values = self.__config.print_config()
         for i in range(len(conf_values)):
             logging.info(conf_values[i])
-        logging.info("Electrode updater: : %s", str(type(self.__electrode_updater)))
-        logging.info("#---------------#:")
+        logging.info('Electrode updater: ' + str(type(self.__electrode_updater)))
+        logging.info('#---------------#:')
         # check model integrity
-        logging.info("Creating world...")
+        logging.info('Creating world...')
         self.__create_world()
-        logging.info("Creating configuration scheme...")
+        logging.info('Creating configuration scheme...')
         self.__scheme = self.__electrode_updater.init_scheme()
-        logging.info("Creating initial mesh...")
+        logging.info('Creating initial mesh...')
         self.__create_meshs()
-        logging.info("Checking model integrity...")
+        logging.info('Checking model integrity...')
         res_count = np.unique(np.array(self.__sim_mesh.cellMarkers()), return_inverse=True)
         if len(res_count[0]) != len(self.__config.world_resistivities):
-            logging.error("Marker count does NOT fit given resistivities! ABORTING!")
-            logging.error("Allowed resistivities: %d, given resistivities: %d",
-                          len(res_count[0]), len(self.__config.world_resistivities))
+            logging.error('Marker count does NOT fit given resistivities! ABORTING!')
+            logging.error('Allowed resistivities: {:%d}, given resistivities: {:%d}'.format(
+                          len(res_count[0]), len(self.__config.world_resistivities)))
             return False
-        logging.info("Creating resistivity array...")
+        logging.info('Creating resistivity array...')
         self.__create_res_array()
-        logging.info("### INITIALIZATION COMPLETED")
+        logging.info('### INITIALIZATION COMPLETED')
         self.__is_initialized = True
         return True
 
@@ -179,55 +179,32 @@ class FlexibleInversionController:
 
     def __run_iteration(self):
         if self.__iteration >= self.__config.finv_max_iterations:
-            logging.info("### MAX ITERATIONS REACHED")
-            logging.info("Inverting data on final mesh ...")
+            logging.info('### MAX ITERATIONS REACHED')
+            logging.info('Inverting data on final mesh ...')
             folder = self.__folder + 'final_inv/'
             os.mkdir(folder)
             self.__final_invert(folder)
             return False
 
         self.__iteration = self.__iteration + 1
-        logging.info("### ITERATION %d", self.__iteration)
+        logging.info('### ITERATION ' + str(self.__iteration))
         iteration_subfolder = 'iteration' + str(self.__iteration) + '/'
         folder = self.__folder + iteration_subfolder
         os.mkdir(folder)
         if self.__iteration != 1:
-            logging.info("Inverting data ...")
+            logging.info('Inverting data ...')
             self.__invert(folder)
-            logging.info("Updating scheme ...")
+            logging.info('Updating scheme ...')
             self.__scheme = self.__electrode_updater.update_scheme(self.__scheme, self.__fop, self.__pd, self.__inv,
                                                                    iteration_subfolder)
-        logging.info("Simulating data (%d electrodes, %d configurations)...",
-                     len(self.__scheme.sensorPositions()), len(self.__scheme("rhoa")))
+        logging.info('Simulating data ({} electrodes, {} configurations)...'.format(
+            len(self.__scheme.sensorPositions()), len(self.__scheme('rhoa'))))
         self.__simulate(folder)
         return True
-
-
-    # def __run_iteration_old(self):
-    #     # TODO resort and add final inversion
-    #     # increment iteration
-    #     if self.__iteration >= self.__config.finv_max_iterations:
-    #         logging.info("### MAX ITERATIONS REACHED")
-    #         return False
-    #     self.__iteration = self.__iteration + 1
-    #     logging.info("### ITERATION %d", self.__iteration)
-    #     iteration_subfolder = 'iteration' + str(self.__iteration) + '/'
-    #     folder = self.__folder + iteration_subfolder
-    #     os.mkdir(folder)
-    #     if self.__iteration != 1:
-    #         logging.info("Updating scheme ...")
-    #         self.__scheme = self.__electrode_updater.update_scheme(self.__scheme, self.__fop, self.__pd, self.__inv,
-    #                                                                iteration_subfolder)
-    #     logging.info("Simulating data (%d electrodes, %d configurations)...",
-    #                  len(self.__scheme.sensorPositions()), len(self.__scheme("rhoa")))
-    #     self.__simulate(folder)
-    #     logging.info("Inverting data ...")
-    #     self.__invert(folder)
-    #     return True
 
     def run(self):
         if self.__initialize():
             run_loop = True
             while run_loop:
                 run_loop = self.__run_iteration()
-        logging.info("Routine end time: %s", str(datetime.datetime.now()))
+        logging.info('Routine end time: ' + str(datetime.datetime.now()))

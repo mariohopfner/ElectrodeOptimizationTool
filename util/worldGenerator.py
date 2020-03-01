@@ -18,7 +18,7 @@ def get_insert_index(nodes, node):
     edge_end = i
 
     if (node[3] == 0) or (node[3] == 2) or (node[3] == 4) or (node[3] == 6):
-        print("Function can only be used for non-default edges (1,3,5,7)")
+        print('Function can only be used for non-default edges (1,3,5,7)')
         return -1
 
     i = edge_start
@@ -71,7 +71,7 @@ The region markers are 1 for the world and 2 for the inclusion.
         incl_start_x       - upper left corner of the inclusion as [x,y]
         incl_dim_x         - inclusion dimensions as [x,y]
 '''
-def generate_hom_world_with_inclusion(world_dim=[100, 100], incl_start=[10, -10], incl_dim=[10, 10]):
+def generate_hom_world_with_inclusion(world_dim, incl_start, incl_dim):
     # create world
     world = mt.createWorld(start=[0, 0], end=[world_dim[0], -world_dim[1]])
 
@@ -91,7 +91,7 @@ The region markers are increasing with depth
         world_dim_x        - world dimensions as [x,y]
         layer_heights      - heights of the layers (at least one height needs to be given)
 '''
-def generate_layered_world(world_dim=[100, 100], layer_heights=[10, 20]):
+def generate_layered_world(world_dim, layer_heights):
     # pre-computational checks
     if sum(layer_heights) > world_dim[1]:
         return None
@@ -128,8 +128,7 @@ The region markers are increasing with depth, the inclusion has the next availab
         incl_start_x       - upper left corner of the inclusion as [x,y]
         incl_dim_x         - inclusion dimensions as [x,y]
 '''
-def generate_layered_world_with_inclusion(world_dim=[100, 100], layer_heights=[10, 20], incl_start=[10, -10],
-                                          incl_dim=[10, 10]):
+def generate_layered_world_with_inclusion(world_dim, layer_heights, incl_start, incl_dim):
     # pre-computational checks
     if sum(layer_heights) > world_dim[1]:
         return None
@@ -278,7 +277,7 @@ Generates a tiled world.
         world_dim          - world dimensions as [x,y]
         tile_size          - size of the tiles as [x,y]
 '''
-def generate_tiled_world(world_dim=[100, 100], tile_size=[10, 10]):
+def generate_tiled_world(world_dim, tile_size):
     # create world
     world = mt.createWorld(start=[0, 0], end=[world_dim[0], -world_dim[1]])
 
@@ -303,32 +302,3 @@ def generate_tiled_world(world_dim=[100, 100], tile_size=[10, 10]):
             world = mt.mergePLC([world, tile])
 
     return world
-
-
-'''
-Function that creates a PyGimli world with given parameters
-    :parameter
-        scheme_file        - name of the scheme file
-        x                  - length of world in x dimension
-        y                  - length of world in y dimension
-        layers             - depths of subsurface-splitting horizons
-'''
-# def generate_simple_layered_world(scheme_file, x=100, y=100, layers=None):
-#     if layers is None:
-#         layers = []
-#
-#     # if first layer is the surface layer, remove it
-#     if len(layers) > 0 and layers[0] == 0:
-#         layers.pop(0)
-#
-#     # create world
-#     world = mt.createWorld(start=[0,0], end=[x,-y], layers=layers)
-#
-#     # load given scheme file
-#     scheme = pb.load(scheme_file)
-#
-#     # add electrodes defined in scheme file
-#     for s in scheme.sensors():
-#         world.createNode(s + [0.0, -0.2])
-#
-#     return world

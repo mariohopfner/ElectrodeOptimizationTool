@@ -111,7 +111,7 @@ class ResolutionElectrodeUpdater(ElectrodeUpdater):
                 gj_sum[i] += np.abs(j_compr[j,i])
             gj_sum[i] /= nd
 
-        # compute gradient weighing
+        # compute gradient weighting
         grad = np.zeros(nm)
         if self.__gradient_weight > 0:
             mesh.createNeighbourInfos()
@@ -119,21 +119,12 @@ class ResolutionElectrodeUpdater(ElectrodeUpdater):
             for i in range(nm):
                 n = 0
                 cell_grad = 0
-                if mesh.cells()[i].neighbourCell(0) is not None:
-                    n += 1
-                    i_n = mesh.cells().index((mesh.cells()[i].neighbourCell(0)))
-                    cell_grad += np.abs(cell_data[i] - cell_data[i_n]) / \
-                                 ((cc[i][0] - cc[i_n][0]) ** 2 + (cc[i][1] - cc[i_n][1]) ** 2) ** 0.5
-                if mesh.cells()[i].neighbourCell(1) is not None:
-                    n += 1
-                    i_n = mesh.cells().index((mesh.cells()[i].neighbourCell(1)))
-                    cell_grad += np.abs(cell_data[i] - cell_data[i_n]) / \
-                                 ((cc[i][0] - cc[i_n][0]) ** 2 + (cc[i][1] - cc[i_n][1]) ** 2) ** 0.5
-                if mesh.cells()[i].neighbourCell(2) is not None:
-                    n += 1
-                    i_n = mesh.cells().index((mesh.cells()[i].neighbourCell(2)))
-                    cell_grad += np.abs(cell_data[i] - cell_data[i_n]) / \
-                                 ((cc[i][0] - cc[i_n][0]) ** 2 + (cc[i][1] - cc[i_n][1]) ** 2) ** 0.5
+                for j in range(mesh.cells()[i].neighbourCellCount()):
+                    if mesh.cells()[i].neighbourCell(j) is not None:
+                        n += 1
+                        i_n = mesh.cells().index((mesh.cells()[i].neighbourCell(j)))
+                        cell_grad += np.abs(cell_data[i] - cell_data[i_n]) / \
+                                     ((cc[i][0] - cc[i_n][0]) ** 2 + (cc[i][1] - cc[i_n][1]) ** 2) ** 0.5
                 grad[i] = cell_grad / n
             grad /= max(grad)
 

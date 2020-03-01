@@ -29,21 +29,21 @@ config = InversionConfiguration(general_bert_verbose=True, general_folder_suffix
 
 # create folder
 start_time = datetime.datetime.now()
-folder = "../inversion_results/job-%d%d%d-%d.%d.%d-fullinv/" \
+folder = '../inversion_results/job-%d%d%d-%d.%d.%d-fullinv/' \
  % (start_time.year,start_time.month,start_time.day,start_time.hour,start_time.minute,start_time.second)
-os.makedirs(folder + "tmp/")
+os.makedirs(folder + 'tmp/')
 
 # create world
-if config.world_gen == "lay":
+if config.world_gen == 'lay':
     world = wg.generate_dipped_layered_world(
         [config.world_x, config.world_y], config.world_layers, config.world_angle)
 
-if config.world_gen == "incl":
+if config.world_gen == 'incl':
     world = wg.generate_hom_world_with_inclusion(
         [config.world_x, config.world_y],
         config.world_inclusion_start, config.world_inclusion_dim)
 
-if config.world_gen == "tile":
+if config.world_gen == 'tile':
     world = wg.generate_tiled_world(world_dim=[config.world_x, config.world_y],
                                            tile_size=[config.world_tile_x, config.world_tile_y])
 
@@ -66,14 +66,14 @@ while np.floor((electrode_counts[j]-1)/2) == (electrode_counts[j]-1)/2:
 comp_scheme = pb.createData(elecs=comp_electrodes[0], schemeName=schemes[0])
 for j in range(1,len(comp_electrodes)):
     scheme_tmp = pb.createData(elecs=comp_electrodes[j], schemeName=schemes[0])
-    comp_scheme = su.merge_schemes(comp_scheme, scheme_tmp, folder + "tmp/")
+    comp_scheme = su.merge_schemes(comp_scheme, scheme_tmp, folder + 'tmp/')
 
 for i in range(1,len(schemes)-1):
     scheme_tmp = pb.createData(elecs=comp_electrodes[0], schemeName=schemes[i])
     for j in range(1, len(comp_electrodes)):
         scheme_tmp2 = pb.createData(elecs=comp_electrodes[j], schemeName=schemes[i])
-        scheme_tmp = su.merge_schemes(scheme_tmp, scheme_tmp2, folder + "tmp/")
-    comp_scheme = su.merge_schemes(comp_scheme, scheme_tmp, folder + "tmp/")
+        scheme_tmp = su.merge_schemes(scheme_tmp, scheme_tmp2, folder + 'tmp/')
+    comp_scheme = su.merge_schemes(comp_scheme, scheme_tmp, folder + 'tmp/')
 scheme = comp_scheme
 
 # create mesh
