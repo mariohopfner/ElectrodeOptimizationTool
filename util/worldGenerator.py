@@ -1,105 +1,49 @@
 #!/usr/bin/env python
 
 import math
-import pygimli as pg
-import pygimli.meshtools as mt
+
 import numpy as np
+import pygimli.meshtools as mt
 
-def get_insert_index(nodes, node):
-    i = 0
-    # get edge start index
-    while (i < len(nodes)) and (nodes[i][3] < node[3]):
-        i = i + 1
-    edge_start = i
+def generate_hom_world_with_inclusion(world_dim: list, incl_start: list, incl_dim: list):
+    """ Creates a homogeneous world with inclusion.
 
-    # get edge end index
-    while (i < len(nodes)) and (nodes[i][3] <= node[3]):
-        i = i + 1
-    edge_end = i
+    Utility function to create a homogeneous world with an inclusion. Region markers are set to 1 for the background
+    world and 2 for the inclusion.
 
-    if (node[3] == 0) or (node[3] == 2) or (node[3] == 4) or (node[3] == 6):
-        print('Function can only be used for non-default edges (1,3,5,7)')
-        return -1
+    Parameter:
+        world_dim: World dimensions as [x,z].
+        incl_start: Inclusion upper left corner as [x,z].
+        incl_dim: Inclusion dimension as [x,z].
 
-    i = edge_start
-    if node[3] == 1:
-        while (i < edge_end) and (node[1] > nodes[i][1]):
-            i = i + 1
-
-    if node[3] == 3:
-        while (i < edge_end) and (node[2] < nodes[i][2]):
-            i = i + 1
-
-    if node[3] == 5:
-        while (i < edge_end) and (node[1] < nodes[i][1]):
-            i = i + 1
-
-    if node[3] == 7:
-        while (i < edge_end) and (node[2] > nodes[i][2]):
-            i = i + 1
-
-    return i
-
-
-def get_connecting_node(nodes, node, node_connections):
-    for i in range(len(node_connections)):
-        if node_connections[i][0] == nodes[node][0]:
-            for j in range(len(nodes)):
-                if node_connections[i][1] == nodes[j][0]:
-                    return j
-    return -1
-
-
-def get_next_node(nodes, current_node):
-    if current_node >= len(nodes) - 1:
-        return 0
-    else:
-        return current_node + 1
-
-
-def get_polygon_from_nodes(node_set):
-    vertices = []
-    for i in range(len(node_set)):
-        vertices.append([node_set[i][1], node_set[i][2]])
-    return vertices
-
-'''
-Generates a homogeneous world with a single inclusion.
-The region markers are 1 for the world and 2 for the inclusion.
-    :parameter
-        world_dim_x        - world dimensions as [x,y]
-        incl_start_x       - upper left corner of the inclusion as [x,y]
-        incl_dim_x         - inclusion dimensions as [x,y]
-'''
-def generate_hom_world_with_inclusion(world_dim, incl_start, incl_dim):
-    # create world
+    Returns:
+        The created world.
+    """
+    # Create geometric objects
     world = mt.createWorld(start=[0, 0], end=[world_dim[0], -world_dim[1]])
-
-    # create inclusion
     inclusion = mt.createRectangle(start=incl_start, end=[incl_start[0]+incl_dim[0], incl_start[1]-incl_dim[1]],
                                    marker=2, boundaryMarker=10)
-
-    # merge underground
+    # Merge geometries
     geom = mt.mergePLC([world, inclusion])
-
     return geom
 
-'''
-Generates a layered world
-The region markers are increasing with depth
-    :parameter
-        world_dim_x        - world dimensions as [x,y]
-        layer_heights      - heights of the layers (at least one height needs to be given)
-'''
-def generate_layered_world(world_dim, layer_heights):
-    # pre-computational checks
+def generate_layered_world(world_dim: list, layer_heights: list):
+    """ Creates a layered world.
+
+    Utility function to create a layered world. Region markers are starting at 1 and increasing with depth.
+
+    Parameter:
+        world_dim: World dimensions as [x,z].
+        layer_heights: Heights of the single layers.
+
+    Returns:
+        The created world.
+    """
+    # Check parameter integrity
     if sum(layer_heights) > world_dim[1]:
         return None
-
-    # create world
+    # Create geometric objects
     world = mt.createWorld(start=[0, 0], end=[world_dim[0], -world_dim[1]])
-
-    # create layers
     current_depth = 0
     layers = []
     for i in range(len(layer_heights)):
@@ -107,36 +51,34 @@ def generate_layered_world(world_dim, layer_heights):
                                    marker=i + 1, boundaryMarker=10)
         current_depth += layer_heights[i]
         layers.append(layer)
-
-    # add bottom layer if needed
     if current_depth != world_dim[1]:
         layer = mt.createRectangle(start=[0, -current_depth], end=[world_dim[0], -world_dim[1]],
                                    marker=i + 2, boundaryMarker=10)
         layers.append(layer)
-
-    # merge underground
+    # Merge geometries
     geom = mt.mergePLC([world] + layers)
-
     return geom
 
-'''
-Generates a layered world with a single inclusion.
-The region markers are increasing with depth, the inclusion has the next available marker number
-    :parameter
-        world_dim_x        - world dimensions as [x,y]
-        layer_heights      - heights of the layers (at least one height needs to be given)
-        incl_start_x       - upper left corner of the inclusion as [x,y]
-        incl_dim_x         - inclusion dimensions as [x,y]
-'''
-def generate_layered_world_with_inclusion(world_dim, layer_heights, incl_start, incl_dim):
-    # pre-computational checks
+def generate_layered_world_with_inclusion(world_dim: list, layer_heights: list, incl_start: list, incl_dim:list):
+    """ Creates a layered world with inclusion.
+
+    Utility function to create a layered world with an inclusion. Region markers are starting at 1 and increasing with
+    depth. The inclusion has the highest marker number.
+
+    Parameter:
+        world_dim: World dimensions as [x,z].
+        layer_heights: Heights of the single layers.
+        incl_start: Inclusion upper left corner as [x,z].
+        incl_dim: Inclusion dimension as [x,z].
+
+    Returns:
+        The created world.
+    """
+    # Check parameter integrity
     if sum(layer_heights) > world_dim[1]:
         return None
-
-    # create world
+    # Create geometric objects
     world = mt.createWorld(start=[0, 0], end=[world_dim[0], -world_dim[1]])
-
-    # create layers
     current_depth = 0
     layers = []
     for i in range(len(layer_heights)):
@@ -144,92 +86,135 @@ def generate_layered_world_with_inclusion(world_dim, layer_heights, incl_start, 
                                    marker=i + 1, boundaryMarker=10)
         current_depth += layer_heights[i]
         layers.append(layer)
-
-    # add bottom layer if needed
     if current_depth != world_dim[1]:
         layer = mt.createRectangle(start=[0, -current_depth], end=[world_dim[0], -world_dim[1]],
                                    marker=i + 2, boundaryMarker=10)
         layers.append(layer)
-
-    # create inclusion
     inclusion = mt.createRectangle(start=incl_start, end=[incl_start[0] + incl_dim[0], incl_start[1] - incl_dim[1]],
                                    marker=len(layers) + 1, boundaryMarker=10)
-
-    # merge underground
+    # Merge geometries
     geom = mt.mergePLC([world, inclusion] + layers)
-
     return geom
 
-'''
-Generates a dipped layered world.
-    :parameter
-        world_dim_x        - world dimensions as [x,y]
-        layer_heights      - heights of the layers (at least one height needs to be given)
-        dipping_angle      - angle at which the layers are dipping
-'''
-def generate_dipped_layered_world(world_dim, layer_ends, dipping_angle):
-    # pre-correct angle
+def generate_dipped_layered_world(world_dim: list, layer_borders: list, dipping_angle: float):
+    """ Creates a dipped layered world.
+
+    Utility function to create a dipped layered world. Region markers are increasing with depth.
+
+    Parameter:
+        world_dim: World dimensions as [x,z].
+        layer_borders: List of layer borders at world X = 0.
+        dipping_angle: Angle at which the layers are dipping. Value describing counter-clockwise angle.
+
+    Returns:
+        The created world.
+    """
+    # Nested function to find the index to add a specific node
+    def get_insert_index(nodes, node):
+        i = 0
+        # Get edge starting index
+        while (i < len(nodes)) and (nodes[i][3] < node[3]):
+            i = i + 1
+        edge_start = i
+        # Get edge ending index
+        while (i < len(nodes)) and (nodes[i][3] <= node[3]):
+            i = i + 1
+        edge_end = i
+        # Check for input error
+        if (node[3] == 0) or (node[3] == 2) or (node[3] == 4) or (node[3] == 6):
+            print('Function can only be used for non-default edges (1,3,5,7)')
+            return -1
+        # Find index based on specific edge
+        i = edge_start
+        if node[3] == 1:
+            while (i < edge_end) and (node[1] > nodes[i][1]):
+                i = i + 1
+        if node[3] == 3:
+            while (i < edge_end) and (node[2] < nodes[i][2]):
+                i = i + 1
+        if node[3] == 5:
+            while (i < edge_end) and (node[1] < nodes[i][1]):
+                i = i + 1
+        if node[3] == 7:
+            while (i < edge_end) and (node[2] > nodes[i][2]):
+                i = i + 1
+        return i
+    # Nested function to find the connecting node of a given node
+    def get_connecting_node(nodes_list, node, node_connections_list):
+        for i in range(len(node_connections_list)):
+            if node_connections_list[i][0] == nodes_list[node][0]:
+                for j in range(len(nodes_list)):
+                    if node_connections_list[i][1] == nodes_list[j][0]:
+                        return j
+        return -1
+    # Nested function to find the next node on the world border
+    def get_next_node(nodes_list, current_node):
+        if current_node >= len(nodes_list) - 1:
+            return 0
+        else:
+            return current_node + 1
+    # Nested function to create a polygon from a set of nodes
+    def get_polygon_from_nodes(node_set):
+        vertices = []
+        for i in range(len(node_set)):
+            vertices.append([node_set[i][1], node_set[i][2]])
+        return vertices
+    # Correct angle
     while dipping_angle > 180:
         dipping_angle -= 360
-
     while dipping_angle < -180:
         dipping_angle += 360
-
-    # create world
+    # Create background world
     world = mt.createWorld(start=[0, 0], end=[world_dim[0], -world_dim[1]], worldMarker=True)
-
-    # remove layers out of world scope
+    # Remove layers out of world scope
     removed_indices = 0
-    for i in range(len(layer_ends)):
-        if (dipping_angle >= 0 and layer_ends[i - removed_indices] > 0) or (
-                dipping_angle <= 0 and layer_ends[i - removed_indices] < -world_dim[1]):
-            layer_ends.pop(i - removed_indices)
+    for i in range(len(layer_borders)):
+        if (dipping_angle >= 0 and layer_borders[i - removed_indices] > 0) or (
+                dipping_angle <= 0 and layer_borders[i - removed_indices] < -world_dim[1]):
+            layer_borders.pop(i - removed_indices)
             removed_indices = removed_indices + 1
-
-    # compute layer height difference based on dipping angle
+    # Compute layer height difference based on dipping angle
     dipping_diff = world_dim[0] * math.tan(dipping_angle / 180 * math.pi)
-
-    # compute nodes (id,x,y,edge)
+    # Compute nodes on world border (id,x,y,edge)
     nodes = [[0, 0, 0, 0], [1, world_dim[0], 0, 2], [2, world_dim[0], -world_dim[1], 4], [3, 0, -world_dim[1], 6]]
     node_connections = []
     next_id = 4
-    for i in range(len(layer_ends)):
-        # starting node
-        if layer_ends[i] <= 0 and layer_ends[i] >= -world_dim[1]:
-            # layer starts at left world border
-            start_node = [next_id, 0, layer_ends[i], 7]
+    for i in range(len(layer_borders)):
+        # Find starting node
+        if layer_borders[i] <= 0 and layer_borders[i] >= -world_dim[1]:
+            # Layer starts at left world border (default case)
+            start_node = [next_id, 0, layer_borders[i], 7]
         else:
-            if layer_ends[i] > 0:
-                # layer starts above world
-                x = layer_ends[i] * math.tan((90 + dipping_angle) * math.pi / 180)
+            if layer_borders[i] > 0:
+                # Layer starts above world
+                x = layer_borders[i] * math.tan((90 + dipping_angle) * math.pi / 180)
                 start_node = [next_id, x, 0, 1]
             else:
-                # layer starts below world
-                x = -(layer_ends[i] + world_dim[1]) * math.tan((90 - dipping_angle) * math.pi / 180)
+                # Layer starts below world
+                x = -(layer_borders[i] + world_dim[1]) * math.tan((90 - dipping_angle) * math.pi / 180)
                 start_node = [next_id, x, -world_dim[1], 5]
         nodes.insert(get_insert_index(nodes, start_node), start_node)
         next_id = next_id + 1
-        # ending node
-        if layer_ends[i] + dipping_diff <= 0 and layer_ends[i] + dipping_diff >= -world_dim[1]:
-            # layer ends at right world border
-            end_node = [next_id, world_dim[0], layer_ends[i] + dipping_diff, 3]
+        # Find ending node
+        if layer_borders[i] + dipping_diff <= 0 and layer_borders[i] + dipping_diff >= -world_dim[1]:
+            # Layer ends at right world border (default case)
+            end_node = [next_id, world_dim[0], layer_borders[i] + dipping_diff, 3]
         else:
-            if layer_ends[i] + dipping_diff > 0:
-                # layer ends above world
-                x = -layer_ends[i] / math.tan(dipping_angle / 180 * math.pi)
+            if layer_borders[i] + dipping_diff > 0:
+                # Layer ends above world
+                x = -layer_borders[i] / math.tan(dipping_angle / 180 * math.pi)
                 end_node = [next_id, x, 0, 1]
             else:
-                # layer ends below world
-                x = world_dim[0] - (layer_ends[i] + dipping_diff + world_dim[1]) / math.tan(
+                # Layer ends below world
+                x = world_dim[0] - (layer_borders[i] + dipping_diff + world_dim[1]) / math.tan(
                     dipping_angle / 180 * math.pi)
                 end_node = [next_id, x, -world_dim[1], 5]
         nodes.insert(get_insert_index(nodes, end_node), end_node)
         next_id = next_id + 1
-        # save node connections
+        # Save node connections
         node_connections.append([start_node[0], end_node[0]])
         node_connections.append([end_node[0], start_node[0]])
-
-    # compute polygons
+    # Compute polygons from nodes
     polygons = []
     first_node = 0
     edge_to_finish = 4
@@ -239,7 +224,6 @@ def generate_dipped_layered_world(world_dim, layer_ends, dipping_angle):
                 break
         first_node = i
         edge_to_finish = 6
-
     while edge_to_finish != -1:
         polygon = []
         last_node_was_connected = False
@@ -264,27 +248,30 @@ def generate_dipped_layered_world(world_dim, layer_ends, dipping_angle):
             if nodes[current_node_index][3] == edge_to_finish:
                 edge_to_finish = -1
         polygons.append(polygon[:-1])
-
-    # merge underground
+    # Merge geometries
     for i in range(len(polygons)):
         poly = mt.createPolygon(get_polygon_from_nodes(polygons[i]), marker=i + 1, isClosed=True)
         world = mt.mergePLC([world, poly])
     return world
 
-'''
-Generates a tiled world.
-    :parameter
-        world_dim          - world dimensions as [x,y]
-        tile_size          - size of the tiles as [x,y]
-'''
 def generate_tiled_world(world_dim, tile_size):
-    # create world
-    world = mt.createWorld(start=[0, 0], end=[world_dim[0], -world_dim[1]])
+    """ Creates a tiled layered world.
 
+        Utility function to create a tiled layered world. Region marker 1 is upper left corner.
+
+        Parameter:
+            world_dim: World dimensions as [x,z].
+            tile_size: Tile dimensions as [x,z].
+
+        Returns:
+            The created world.
+        """
+    # Create world
+    world = mt.createWorld(start=[0, 0], end=[world_dim[0], -world_dim[1]])
+    # Create tile counts
     n_tiles_x = int(np.ceil(world_dim[0] / tile_size[0]))
     n_tiles_y = int(np.ceil(world_dim[1] / tile_size[1]))
-
-    # create tiles
+    # Create and merge tiles
     for j in range(n_tiles_y):
         for i in range(n_tiles_x):
             x_start = int(i * tile_size[0])
@@ -300,5 +287,4 @@ def generate_tiled_world(world_dim, tile_size):
                 marker = 2
             tile = mt.createRectangle(start=[x_start, y_start], end=[x_end, y_end], marker=marker, boundaryMarker=10)
             world = mt.mergePLC([world, tile])
-
     return world

@@ -4,10 +4,11 @@ class InversionConfiguration:
     This class is mainly used for configuring the FlexibleInversionControllers behaviour. Should be passed to the FIC
     init method.
 
-    Attributes:
+    Parameter:
         general_bert_verbose: A boolean indicating if bert should print verbose information.
+        general_folder_suffix: A string extending the job-specific folder name, e.g. '-test'.
         world_x: A float describing the simulation worlds x dimension.
-        world_y: A float describing the simulation worlds y dimension.
+        world_z: A float describing the simulation worlds z dimension.
         world_resistivities: A list of floats describing the simulation worlds regions resistivities.
         world_gen: A string describing the used simulation world generator.
         world_layers: A list of floats describing the depths of layers in the simulation world. Only used when the
@@ -19,13 +20,22 @@ class InversionConfiguration:
                                generator 'incl' is used.
         world_inclusion_dim: A list containing two floats setting the x and y dimensions of the inclusion in the
                              simulation world. Only used when the world generator 'incl' is used.
+        world_tile_x: A float setting the x dimension size of a single tile.
+        world_tile_z: A float setting the z dimension size of a single tile.
+        world_electrode_offset: A float indicating the offset between the world boundary and the outermost electrodes.
         sim_mesh_quality: An int describing the mesh quality used for simulation. Passed to the PyGimli meshtools.
+        sim_mesh_maxarea: A float describing the maximum area of a mesh cell for data simulation.
         sim_noise_level: A float describing the simulation noise level. Passed to the PyBert simulator.
         sim_noise_abs: A float describing the absolute simulation noise. Passed to the PyBert simulator.
         inv_lambda: A float describing the regularization lambda. Passed to the PyBert inverter.
-        inv_dx: A float describing the paraDX. Passed to the PyBert inverter.
-        inv_max_cell_area: A float describing the maximum area a cell in the inverted model shall have. Passed to the
-                           PyBert inverter.
+        inv_dx: A float describing the inversion mesh X dimension cell size.
+        inv_dz: A float describing the average inversion mesh Z dimension cell size.
+        inv_depth: A float setting the maximum depth of the inversion model.
+        inv_final_lambda: A float describing the regularization lambda of the final inversion. Passed to the PyBert
+                          inverter.
+        inv_final_dx: A float describing the inversion final mesh X dimension cell size.
+        inv_final_dz: A float describing the average final inversion mesh Z dimension cell size.
+        inv_final_depth: A float setting the maximum depth of the final inversion model.
         finv_max_iterations: An int setting the maximum iterations the flexible inversion shall run.
         finv_spacing: A float describing the electrode spacing within the world.
         finv_base_configs: A list of strings describing the configuration short-terms used as initial configuration
@@ -34,62 +44,59 @@ class InversionConfiguration:
                           sets.
         finv_gradient_weight: A float describing the weight of the gradient in relation to the goodness function.
                               Gradient calculation will be deactivated if this value is 0. Should be >= 0.
-        finv_addconfig_count: An int describing the configuration count added per iteration
+        finv_addconfig_count: An int describing the configuration count added per iteration.
+        finv_li_threshold: A float indicating the maximum value the li function of a configuration is allowed to have to
+                           be still accepted.
 
     Typical usage example:
       config = InversionConfiguration(...)
       fic = FlexibleInversionController(config: config, electrode_updater: ...)
     """
-
     def __init__(self,
                  general_bert_verbose: bool, general_folder_suffix: str,
-                 world_x: float, world_y: float, world_resistivities: list, world_gen: str, world_layers: list,
-                 world_angle: float, world_inclusion_start: list, world_inclusion_dim: list, world_tile_x: int,
-                 world_tile_y: int, world_electrode_offset: float,
+                 world_x: float, world_z: float, world_resistivities: list, world_gen: str, world_layers: list,
+                 world_angle: float, world_inclusion_start: list, world_inclusion_dim: list, world_tile_x: float,
+                 world_tile_z: float, world_electrode_offset: float,
                  sim_mesh_quality: int, sim_mesh_maxarea: float, sim_noise_level: float, sim_noise_abs: float,
                  inv_lambda: float, inv_dx: float, inv_dz: float, inv_depth: float,
                  inv_final_lambda: float, inv_final_dx: float, inv_final_dz: float, inv_final_depth: float,
                  finv_max_iterations: int, finv_spacing: float, finv_base_configs: list, finv_add_configs: list,
                  finv_gradient_weight: float, finv_addconfig_count: int, finv_li_threshold: float):
-        # general params
+        # General parameter
         self.general_bert_verbose = general_bert_verbose
         self.general_folder_suffix = general_folder_suffix
-
-        # world params
+        # World parameter
         self.world_x = world_x
-        self.world_y = world_y
+        self.world_z = world_z
         self.world_resistivities = world_resistivities
         self.world_gen = world_gen    # incl, lay, tile
         self.world_electrode_offset = world_electrode_offset
-        # layered world
+        # Layered world parameter
         self.world_layers = world_layers
         self.world_angle = world_angle
-        # homogeneous world with inclusion
+        # Homogeneous world with inclusion parameter
         self.world_inclusion_start = world_inclusion_start
         self.world_inclusion_dim = world_inclusion_dim
-        # tiled world
+        #
+        # Tiled world parameter
         self.world_tile_x = world_tile_x
-        self.world_tile_y = world_tile_y
-
-        # simulation params
+        self.world_tile_z = world_tile_z
+        # Simulation parameter
         self.sim_mesh_quality = sim_mesh_quality
         self.sim_mesh_maxarea = sim_mesh_maxarea
         self.sim_noise_level = sim_noise_level
         self.sim_noise_abs = sim_noise_abs
-
-        # inversion params
+        # Inversion parameter
         self.inv_lambda = inv_lambda
         self.inv_dx = inv_dx
         self.inv_dz = inv_dz
         self.inv_depth = inv_depth
-
-        # final inversion params
+        # Final inversion parameter
         self.inv_final_lambda = inv_final_lambda
         self.inv_final_dx = inv_final_dx
         self.inv_final_dz = inv_final_dz
         self.inv_final_depth = inv_final_depth
-
-        # flexible inversion params
+        # Flexible inversion parameter
         self.finv_max_iterations = finv_max_iterations
         self.finv_spacing = finv_spacing
         self.finv_base_configs = finv_base_configs
@@ -105,9 +112,9 @@ class InversionConfiguration:
         relationships.
 
         Returns:
-            Whether the configuration object is integer (0) or there are validation errors (error code)
+            Whether the configuration object is integer (0) or there are validation errors (error code).
         """
-        if isinstance(self.world_x,list) or isinstance(self.world_y, list):
+        if isinstance(self.world_x,list) or isinstance(self.world_z, list):
             return 1
 
         if not isinstance(self.world_resistivities, list):
@@ -127,7 +134,7 @@ class InversionConfiguration:
             if isinstance(self.world_angle, list):
                 return 5
         if self.world_gen == 'tile':
-            if isinstance(self.world_tile_x,list) or isinstance(self.world_tile_y,list):
+            if isinstance(self.world_tile_x,list) or isinstance(self.world_tile_z, list):
                 return 6
 
         if isinstance(self.world_electrode_offset, list):
@@ -173,7 +180,7 @@ class InversionConfiguration:
         """
         conf_string = ['Bert Verbose: ' + str(self.general_bert_verbose),
                        'Folder suffix: ' + str(self.general_folder_suffix), 'World X: ' + str(self.world_x),
-                       'World Y: ' + str(self.world_y), 'World resistivities: ' + str(self.world_resistivities),
+                       'World Z: ' + str(self.world_z), 'World resistivities: ' + str(self.world_resistivities),
                        'World generator: ' + str(self.world_gen)]
 
         if self.world_gen == 'lay':
@@ -186,7 +193,7 @@ class InversionConfiguration:
 
         if self.world_gen == 'tile':
             conf_string.append('World tile size X: ' + str(self.world_tile_x))
-            conf_string.append('World tile size Y: ' + str(self.world_tile_y))
+            conf_string.append('World tile size Z: ' + str(self.world_tile_z))
 
         conf_string.append('Electrode offset: ' + str(self.world_electrode_offset))
 
