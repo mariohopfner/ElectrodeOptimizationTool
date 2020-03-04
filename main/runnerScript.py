@@ -2,7 +2,7 @@
 
 from main.FlexibleInversionController import FlexibleInversionController
 from main.ResolutionElectrodeUpdater import ResolutionElectrodeUpdater
-from util.InversionConfiguration import InversionConfiguration
+from main.InversionConfiguration import InversionConfiguration
 
 spacings = [2]
 

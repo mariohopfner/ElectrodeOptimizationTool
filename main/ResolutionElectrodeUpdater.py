@@ -5,7 +5,7 @@ import pybert as pb
 import pygimli as pg
 
 from main.ElectrodeUpdater import ElectrodeUpdater
-import util.schemeUtil as su
+import util.schemeUtil as schemeUtil
 
 class ResolutionElectrodeUpdater(ElectrodeUpdater):
     """ An ElectrodeUpdater-implementation providing the update based on subsurface resolution.
@@ -86,17 +86,17 @@ class ResolutionElectrodeUpdater(ElectrodeUpdater):
         self.__comp_scheme = pb.createData(elecs=comp_electrodes[0], schemeName=schemes[0])
         for j in range(1,len(comp_electrodes)):
             scheme_tmp = pb.createData(elecs=comp_electrodes[j], schemeName=schemes[0])
-            self.__comp_scheme = su.merge_schemes(scheme1=self.__comp_scheme, scheme2=scheme_tmp,
-                                                  tmp_dir=self.__folder_tmp)
+            self.__comp_scheme = schemeUtil.merge_schemes(scheme1=self.__comp_scheme, scheme2=scheme_tmp,
+                                                          tmp_dir=self.__folder_tmp)
         # Merge all selected schemes for all selected electrode counts
         for i in range(1,len(schemes)-1):
             scheme_tmp = pb.createData(elecs=comp_electrodes[0], schemeName=schemes[i])
             for j in range(1, len(comp_electrodes)):
                 scheme_tmp2 = pb.createData(elecs=comp_electrodes[j], schemeName=schemes[i])
-                scheme_tmp = su.merge_schemes(scheme1=scheme_tmp, scheme2=scheme_tmp2, tmp_dir=self.__folder_tmp)
+                scheme_tmp = schemeUtil.merge_schemes(scheme1=scheme_tmp, scheme2=scheme_tmp2, tmp_dir=self.__folder_tmp)
             logging.info('Merging with configuration: ' + schemes[i])
-            self.__comp_scheme = su.merge_schemes(scheme1=self.__comp_scheme, scheme2=scheme_tmp,
-                                                  tmp_dir=self.__folder_tmp)
+            self.__comp_scheme = schemeUtil.merge_schemes(scheme1=self.__comp_scheme, scheme2=scheme_tmp,
+                                                          tmp_dir=self.__folder_tmp)
 
     def __compute_jacobian(self, mesh: pg.Mesh, res: np.ndarray, scheme: pb.DataContainerERT):
         """ Computes the Jacobian (sensitivity) matrix.
@@ -176,14 +176,14 @@ class ResolutionElectrodeUpdater(ElectrodeUpdater):
         nd = int(electrode_count * (electrode_count-1) * (electrode_count-2) * (electrode_count-3) / 8)
         nd2 = len(j_compr)  # count of comprehensive configurations
         # Compute j_add by subtracting j_base from j_compr
-        duplicate_indices = su.find_duplicate_configurations(scheme1=scheme_compr, scheme2=scheme_base)
+        duplicate_indices = schemeUtil.find_duplicate_configurations(scheme1=scheme_compr, scheme2=scheme_base)
         j_add = np.delete(arr=j_compr,obj=duplicate_indices,axis=0)
         j_add_idx_dict = np.delete(arr=range(nd2),obj=duplicate_indices)
         # Compute resolution matrices
         j_compr_inv = np.linalg.pinv(j_compr)
-        r_compr = np.matmul(x1=j_compr_inv, x2=j_compr)
+        r_compr = np.matmul(j_compr_inv, j_compr)
         j_base_inv = np.linalg.pinv(j_base)
-        r_base = np.matmul(x1=j_base_inv, x2=j_base)
+        r_base = np.matmul(j_base_inv, j_base)
         # Compute weighting vector
         gj_sum = np.zeros(nm)
         for i in range(nm):
@@ -272,7 +272,7 @@ class ResolutionElectrodeUpdater(ElectrodeUpdater):
         scheme = pb.createData(elecs=electrodes, schemeName=self.__base_configs[0])
         for i in range(1, len(self.__base_configs) - 1):
             scheme_tmp = pb.createData(elecs=electrodes, schemeName=self.__base_configs[i])
-            scheme = su.merge_schemes(scheme1=scheme, scheme2=scheme_tmp, tmp_dir=self.__folder_tmp)
+            scheme = schemeUtil.merge_schemes(scheme1=scheme, scheme2=scheme_tmp, tmp_dir=self.__folder_tmp)
         return scheme
 
     def update_scheme(self, old_scheme: pb.DataContainerERT, fop: pb.DCSRMultiElectrodeModelling, inv_grid: pg.Mesh,
@@ -312,6 +312,6 @@ class ResolutionElectrodeUpdater(ElectrodeUpdater):
                 f.write('%d\n' % (config_indices[i]))
             f.close()
         # Add new configurations to original scheme
-        scheme_add = su.extract_configs_from_scheme(scheme=self.__comp_scheme, config_indices=config_indices,
-                                                    tmp_dir=self.__folder_tmp)
-        return su.merge_schemes(scheme1=old_scheme, scheme2=scheme_add, tmp_dir=self.__folder_tmp)
+        scheme_add = schemeUtil.extract_configs_from_scheme(scheme=self.__comp_scheme, config_indices=config_indices,
+                                                            tmp_dir=self.__folder_tmp)
+        return schemeUtil.merge_schemes(scheme1=old_scheme, scheme2=scheme_add, tmp_dir=self.__folder_tmp)

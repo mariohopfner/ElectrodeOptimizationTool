@@ -59,7 +59,7 @@ def generate_layered_world(world_dim: list, layer_heights: list):
     geom = mt.mergePLC([world] + layers)
     return geom
 
-def generate_layered_world_with_inclusion(world_dim: list, layer_heights: list, incl_start: list, incl_dim:list):
+def generate_layered_world_with_inclusion(world_dim: list, layer_heights: list, incl_start: list, incl_dim: list):
     """ Creates a layered world with inclusion.
 
     Utility function to create a layered world with an inclusion. Region markers are starting at 1 and increasing with
@@ -254,7 +254,7 @@ def generate_dipped_layered_world(world_dim: list, layer_borders: list, dipping_
         world = mt.mergePLC([world, poly])
     return world
 
-def generate_tiled_world(world_dim, tile_size):
+def generate_tiled_world(world_dim: list, tile_size: list):
     """ Creates a tiled layered world.
 
         Utility function to create a tiled layered world. Region marker 1 is upper left corner.

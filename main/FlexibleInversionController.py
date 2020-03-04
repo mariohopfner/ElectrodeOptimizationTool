@@ -11,8 +11,8 @@ import pygimli as pg
 import pygimli.meshtools as mt
 
 from main.ElectrodeUpdater import ElectrodeUpdater
-import util.worldGenerator as wg
-import util.InversionConfiguration as InversionConfiguration
+import util.worldUtil as worldUtil
+import main.InversionConfiguration as InversionConfiguration
 
 
 class FlexibleInversionController:
@@ -58,19 +58,19 @@ class FlexibleInversionController:
         """
         # Create layered world
         if self.__config.world_gen == 'lay':
-            self.__world = wg.generate_dipped_layered_world(
+            self.__world = worldUtil.generate_dipped_layered_world(
                 world_dim=[self.__config.world_x, self.__config.world_z],
                 layer_borders=self.__config.world_layers, dipping_angle=self.__config.world_angle)
             return
         # Create homogeneous world with inclusion
         if self.__config.world_gen == 'incl':
-            self.__world = wg.generate_hom_world_with_inclusion(
+            self.__world = worldUtil.generate_hom_world_with_inclusion(
                 world_dim=[self.__config.world_x, self.__config.world_z],
                 incl_start=self.__config.world_inclusion_start, incl_dim=self.__config.world_inclusion_dim)
             return
         # Create tiled world
         if self.__config.world_gen == 'tile':
-            self.__world = wg.generate_tiled_world(
+            self.__world = worldUtil.generate_tiled_world(
                 world_dim=[self.__config.world_x, self.__config.world_z],
                 tile_size=[self.__config.world_tile_x, self.__config.world_tile_z])
 

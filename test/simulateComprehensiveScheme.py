@@ -9,16 +9,16 @@ import pygimli as pg
 import pygimli.meshtools as mt
 import pybert as pb
 
-from util.InversionConfiguration import InversionConfiguration
-import util.worldGenerator as wg
+from main.InversionConfiguration import InversionConfiguration
+import util.worldUtil as wg
 import util.schemeUtil as su
 
 # use inversion config
 config = InversionConfiguration(general_bert_verbose=True, general_folder_suffix='-testtile',
-                                world_x=200, world_y=100, world_resistivities=[10,100], world_gen='tile',
+                                world_x=200, world_z=100, world_resistivities=[10, 100], world_gen='tile',
                                 world_layers=[], world_angle=0,
                                 world_inclusion_start=[50,-20], world_inclusion_dim=[20,10],
-                                world_tile_x=40, world_tile_y=5,
+                                world_tile_x=40, world_tile_z=5,
                                 world_electrode_offset=0,
                                 sim_mesh_quality=34, sim_mesh_maxarea=30, sim_noise_level=5, sim_noise_abs=1e-6,
                                 inv_lambda=50, inv_dx=2, inv_dz=2, inv_depth=50,
@@ -36,16 +36,16 @@ os.makedirs(folder + 'tmp/')
 # create world
 if config.world_gen == 'lay':
     world = wg.generate_dipped_layered_world(
-        [config.world_x, config.world_y], config.world_layers, config.world_angle)
+        [config.world_x, config.world_z], config.world_layers, config.world_angle)
 
 if config.world_gen == 'incl':
     world = wg.generate_hom_world_with_inclusion(
-        [config.world_x, config.world_y],
+        [config.world_x, config.world_z],
         config.world_inclusion_start, config.world_inclusion_dim)
 
 if config.world_gen == 'tile':
-    world = wg.generate_tiled_world(world_dim=[config.world_x, config.world_y],
-                                           tile_size=[config.world_tile_x, config.world_tile_y])
+    world = wg.generate_tiled_world(world_dim=[config.world_x, config.world_z],
+                                    tile_size=[config.world_tile_x, config.world_tile_z])
 
 # create electrodes
 electrode_count = np.ceil((config.world_x - 2 * config.world_electrode_offset) / config.finv_spacing) + 1
