@@ -1,8 +1,0 @@
-#No trans
-2   log
-#No start lbound ubound trans
-3    10    8     100	log
-#No background
-1	1
-#Inter-region
-* * 1

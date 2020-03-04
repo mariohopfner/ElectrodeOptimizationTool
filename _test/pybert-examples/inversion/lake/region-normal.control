@@ -1,7 +1,0 @@
-#No	start	Trans	zWeight	Ctype	lBound	uBound	MC
-2	25	log	0.1	1	10	1000	1
-3	25	log	0.1	1	10	1000	1
-#No	background
-1	1
-#Interregion
-2	3	0.1

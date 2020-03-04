@@ -1,6 +1,0 @@
-#No	start	Trans	zWeight	Ctype	lBound	uBound
-2	50	log	0.1	1	10	1000
-#No	fix
-3	42
-#No	background
-1	1
