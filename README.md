@@ -1,4 +1,6 @@
 # Geoelectrics in-field experimental design optimiziation
+[![DOI](https://zenodo.org/badge/213323409.svg)](https://zenodo.org/badge/latestdoi/213323409)
+
 This code provides a basic concept of optimizing the actively used electrode sets in an experiment while still measuring.
 The optimization algorithm is based on the concepts of Stummer et al., 2004 (https://doi.org/10.1190/1.1649381).
 This software was created as a proof-of-concept and still lacks the ability to communicate with actual measurement devices which is needed for real world operation.
