@@ -15,4 +15,8 @@ Dependencies:
 * pybert 2.2.10_0
 
 As this software is a basis for future development, many components are implemented modularly and can easily be replaced with alternative code (e.g. simulation and inversion libraries, electrode optimization criterion, ...).
-Therefore, any changes and ideas are welcome. Feel free to contact me for any questions or ideas!
+Therefore, any changes and ideas are welcome.
+Feel free to contact me for any questions or ideas!
+
+## License notice
+The ElectrodeOptimizationTool is distributed under the terms of the Apache 2.0 license, which can be found here: https://github.com/mariohopfner/ElectrodeOptimizationTool/blob/master/LICENSE.md
