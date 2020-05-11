@@ -10,5 +10,9 @@ The following features are implemented:
 * Simultaneously measure and update the electrode configuration
 * Automatically invert the measured data with customizable parameters
 
+Dependencies:
+* pygimli 1.0.11_0
+* pybert 2.2.10_0
+
 As this software is a basis for future development, many components are implemented modularly and can easily be replaced with alternative code (e.g. simulation and inversion libraries, electrode optimization criterion, ...).
 Therefore, any changes and ideas are welcome. Feel free to contact me for any questions or ideas!
