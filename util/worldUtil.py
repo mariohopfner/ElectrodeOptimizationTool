@@ -257,15 +257,15 @@ def generate_dipped_layered_world(world_dim: list, layer_borders: list, dipping_
 def generate_tiled_world(world_dim: list, tile_size: list):
     """ Creates a tiled layered world.
 
-        Utility function to create a tiled layered world. Region marker 1 is upper left corner.
+    Utility function to create a tiled layered world. Region marker 1 is upper left corner.
 
-        Parameter:
-            world_dim: World dimensions as [x,z].
-            tile_size: Tile dimensions as [x,z].
+    Parameter:
+        world_dim: World dimensions as [x,z].
+        tile_size: Tile dimensions as [x,z].
 
-        Returns:
-            The created world.
-        """
+    Returns:
+        The created world.
+    """
     # Create world
     world = mt.createWorld(start=[0, 0], end=[world_dim[0], -world_dim[1]])
     # Create tile counts

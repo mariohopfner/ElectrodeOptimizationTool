@@ -149,7 +149,7 @@ class FlexibleInversionController:
             logging.info('Configuration file is integer!')
         else:
             logging.error('Configuration file is NOT integer! ABORTING!')
-            logging.error('Error code ' + str +
+            logging.error('Error code ' + str(config_integrity) +
                           '. Check InversionConfiguration.check_integrity() for detailled information')
             return False
         # Print config values to log file for future reproducibility

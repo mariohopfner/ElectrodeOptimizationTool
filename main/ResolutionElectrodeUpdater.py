@@ -270,7 +270,7 @@ class ResolutionElectrodeUpdater(ElectrodeUpdater):
                                      n=electrode_count)
         # Create initial scheme
         scheme = pb.createData(elecs=electrodes, schemeName=self.__base_configs[0])
-        for i in range(1, len(self.__base_configs) - 1):
+        for i in range(1, len(self.__base_configs)):
             scheme_tmp = pb.createData(elecs=electrodes, schemeName=self.__base_configs[i])
             scheme = schemeUtil.merge_schemes(scheme1=scheme, scheme2=scheme_tmp, tmp_dir=self.__folder_tmp)
         return scheme

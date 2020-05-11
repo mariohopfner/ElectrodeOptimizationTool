@@ -9,7 +9,7 @@ def merge_schemes(scheme1: pb.DataContainerERT, scheme2: pb.DataContainerERT, tm
     """ Merges to schemes while prioritizing the first one.
 
     Utility function to merge to schemes. Electrode positions can differ. Electrodes on same positions will be merged.
-    When multiple measurements are available for the same eletrode configuration, the data from scheme1 will be used.
+    When multiple measurements are available for the same electrode configuration, the data from scheme1 will be used.
 
     Parameter:
         scheme1: First scheme to be merged. This scheme will be prioritized.
